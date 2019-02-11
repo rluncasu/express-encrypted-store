@@ -10,6 +10,7 @@ const FooModel = mongoose.model('Foo');
 const postSearch = async (req, res) => {
   const { body } = req;
   const { id, decryption_key } = body;
+
   const splitId = id.split('*');
   const hasWildcard = splitId.length > 1;
 
@@ -19,10 +20,11 @@ const postSearch = async (req, res) => {
     const [queryBase] = splitId;
     query = new RegExp(queryBase);
   }
-  const matchingDocs = await FooModel.find({ id: query }).lean();
+
+  const matchingDocs = await FooModel.find({ id: query }, { _id: 0 }).lean();
   const results = matchingDocs.reduce((acc, doc) => {
     try {
-      const decryptedValue = decrypt(doc.value, decryption_key);
+      const decryptedValue = JSON.parse(decrypt(doc.value, decryption_key));
       acc.push({ ...doc, value: decryptedValue });
     } catch (err) {
       log.error(`attempted decryption of ${doc.id} with key:${decryption_key}`);
@@ -33,11 +35,17 @@ const postSearch = async (req, res) => {
 
   res.send(results);
 };
+
 const postAdd = async (req, res) => {
   const { body } = req;
   const { id, value, encryption_key } = body;
+
   try {
-    const encryptedValue = encrypt(value, encryption_key);
+    const encryptedValue = encrypt(JSON.stringify(value), encryption_key);
+
+    // remove existing document if any
+    await FooModel.deleteOne({ id });
+
     const payload = new FooModel({ ...body, value: encryptedValue });
     await payload.save();
     return res.send(`Saved:${id}`);
@@ -63,7 +71,12 @@ const validators = {
     body: {
       id: Joi.string().required(),
       encryption_key: Joi.string().required(),
-      value: Joi.required()
+      value: [
+        Joi.string().allow(null).required(),
+        Joi.array().required(),
+        Joi.number().required(),
+        Joi.boolean().required()
+      ]
     }
   }
 };
