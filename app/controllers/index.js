@@ -1,33 +1,33 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-underscore-dangle */
 const Joi = require('joi');
-const mongoose = require('mongoose');
+
 const { log } = require('../logger');
 const { encrypt, decrypt } = require('../helpers/encryption');
-
-const FooModel = mongoose.model('Foo');
+const {
+  client, setAsync, getAsync, keysAsync
+} = require('../helpers/redis-promise');
 
 const postSearch = async (req, res) => {
   const { body } = req;
   const { id, decryption_key } = body;
 
-  const splitId = id.split('*');
-  const hasWildcard = splitId.length > 1;
+  // get the matching keys
+  const keys = await keysAsync(id);
 
-  let query = id;
-
-  if (hasWildcard) {
-    const [queryBase] = splitId;
-    query = new RegExp(queryBase);
-  }
-
-  const matchingDocs = await FooModel.find({ id: query }, { _id: 0 }).lean();
+  // reconstruct a doc with key-values
+  const matchingDocs = await Promise.all(
+    keys.map(async (key) => {
+      const value = await getAsync(key);
+      return { key, value };
+    })
+  );
   const results = matchingDocs.reduce((acc, doc) => {
     try {
       const decryptedValue = JSON.parse(decrypt(doc.value, decryption_key));
-      acc.push({ ...doc, value: decryptedValue });
+      acc.push({ id: doc.key, value: decryptedValue });
     } catch (err) {
-      log.error(`attempted decryption of ${doc.id} with key:${decryption_key}`);
+      log.info(`attempted decryption of ${doc.key} with key:${decryption_key}`);
       log.error(err);
     }
     return acc;
@@ -42,12 +42,7 @@ const postAdd = async (req, res) => {
 
   try {
     const encryptedValue = encrypt(JSON.stringify(value), encryption_key);
-
-    // remove existing document if any
-    await FooModel.deleteOne({ id });
-
-    const payload = new FooModel({ ...body, value: encryptedValue });
-    await payload.save();
+    await setAsync(id, encryptedValue);
     return res.send(`Saved:${id}`);
   } catch (err) {
     log.error(err);
@@ -72,7 +67,9 @@ const validators = {
       id: Joi.string().required(),
       encryption_key: Joi.string().required(),
       value: [
-        Joi.string().allow(null).required(),
+        Joi.string()
+          .allow(null)
+          .required(),
         Joi.array().required(),
         Joi.number().required(),
         Joi.boolean().required()
