@@ -1,4 +1,5 @@
-# Express server boilerplate with ecncrypted storage
+# Express key-value store boilerplate with encrypted storage
+#### check the Redis version [here](https://github.com/rluncasu/express-encrypted-store/tree/redis)
 
 ### included:
 - mongodb-memory-server
