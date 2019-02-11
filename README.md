@@ -14,6 +14,7 @@ docker-compose up -d
 
 Start the api server (listens on port 3000 so make sure that's available too)
 ```
+npm i
 npm start
 ```
 
