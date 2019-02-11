@@ -1,4 +1,4 @@
-# Express server boilerplate with ecncrypted storage
+# Express key-value store boilerplate with encrypted storage
 
 ### included:
 - redis
