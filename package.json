@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon ./index.js"
+    "start": "node ./index.js",
+    "development": "nodemon ./index.js"
   },
   "keywords": [
     "encryption",
@@ -17,18 +18,16 @@
   "devDependencies": {
     "eslint": "^5.3.0",
     "eslint-config-airbnb-base": "^13.1.0",
-    "eslint-plugin-import": "^2.16.0"
+    "eslint-plugin-import": "^2.16.0",
+    "nodemon": "^1.18.10"
   },
   "dependencies": {
-    "babel-preset-env": "^1.7.0",
-    "babel-register": "^6.26.0",
     "body-parser": "^1.18.3",
     "bunyan": "^1.8.12",
     "bunyan-prettystream": "^0.1.3",
     "express": "^4.16.4",
     "express-validation": "^1.0.2",
     "joi": "^14.3.1",
-    "nodemon": "^1.18.10",
     "redis": "^2.8.0"
   }
 }
